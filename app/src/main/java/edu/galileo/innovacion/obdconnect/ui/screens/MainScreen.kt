@@ -46,11 +46,13 @@ fun MainScreen(innerPadding: PaddingValues) {
         // Tab Content
         when (selectedTabIndex) {
             0 -> ConnectionTabContent(
-                onConnectionChanged = { isConnected = it }
+                onConnectionChanged = { connected ->
+                    isConnected = !isConnected // Toggle connection state
+                }
             )
             1 -> CarStatusTabContent()
             2 -> ErrorCodesTabContent()
-            3 -> TerminalTabContent()
+            3 -> TerminalTabContent(isConnected = isConnected)
         }
     }
 }
