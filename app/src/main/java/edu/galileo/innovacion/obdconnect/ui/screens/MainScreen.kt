@@ -10,11 +10,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import edu.galileo.innovacion.obdconnect.ui.viewmodels.ConnectionViewModel
 
 @Composable
 fun MainScreen(innerPadding: PaddingValues) {
+    val connectionViewModel: ConnectionViewModel = viewModel()
+    val isConnected by connectionViewModel.isConnected.collectAsState()
+
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    var isConnected by remember { mutableStateOf(false) }
 
     val tabs = listOf(
         TabItem("Connection", Icons.Default.Settings),
@@ -22,6 +26,20 @@ fun MainScreen(innerPadding: PaddingValues) {
         TabItem("Error Codes", Icons.Default.Warning),
         TabItem("Terminal", Icons.Default.List)
     )
+
+    // Manage data reading based on selected tab
+    LaunchedEffect(selectedTabIndex, isConnected) {
+        when (selectedTabIndex) {
+            1, 3 -> { // Car Status or Terminal tab
+                if (isConnected) {
+                    connectionViewModel.startReadingData()
+                }
+            }
+            else -> {
+                connectionViewModel.stopReadingData()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -46,13 +64,15 @@ fun MainScreen(innerPadding: PaddingValues) {
         // Tab Content
         when (selectedTabIndex) {
             0 -> ConnectionTabContent(
-                onConnectionChanged = { connected ->
-                    isConnected = !isConnected // Toggle connection state
-                }
+                viewModel = connectionViewModel
             )
-            1 -> CarStatusTabContent()
+            1 -> CarStatusTabContent(
+                viewModel = connectionViewModel
+            )
             2 -> ErrorCodesTabContent()
-            3 -> TerminalTabContent(isConnected = isConnected)
+            3 -> TerminalTabContent(
+                viewModel = connectionViewModel
+            )
         }
     }
 }

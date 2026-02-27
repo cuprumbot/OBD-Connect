@@ -1,7 +1,6 @@
 package edu.galileo.innovacion.obdconnect.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,16 +17,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.galileo.innovacion.obdconnect.data.MessageType
 import edu.galileo.innovacion.obdconnect.data.TerminalMessage
+import edu.galileo.innovacion.obdconnect.ui.viewmodels.ConnectionViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun TerminalTabContent(
-    isConnected: Boolean = false
+    viewModel: ConnectionViewModel
 ) {
+    val isConnected by viewModel.isConnected.collectAsState()
     var messageInput by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<TerminalMessage>() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Setup terminal logging callback
+    LaunchedEffect(Unit) {
+        viewModel.onTerminalLog = { message ->
+            messages.add(message)
+            coroutineScope.launch {
+                if (messages.isNotEmpty()) {
+                    listState.animateScrollToItem(messages.size - 1)
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -83,23 +96,12 @@ fun TerminalTabContent(
             Button(
                 onClick = {
                     if (messageInput.isNotBlank()) {
-                        // Add sent message to terminal
-                        messages.add(
-                            TerminalMessage(
-                                text = messageInput,
-                                type = MessageType.SENT
-                            )
-                        )
-                        
-                        // Scroll to bottom
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(messages.size - 1)
-                        }
-                        
-                        // TODO: Actually send the message to the sensor
-                        
-                        // Clear input
+                        val command = messageInput
                         messageInput = ""
+
+                        coroutineScope.launch {
+                            viewModel.sendCustomCommand(command)
+                        }
                     }
                 },
                 enabled = isConnected && messageInput.isNotBlank(),
