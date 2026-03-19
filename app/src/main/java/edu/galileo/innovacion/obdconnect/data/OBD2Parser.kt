@@ -97,6 +97,10 @@ object OBD2Parser {
      * Returns empty list if no codes, null if the response is invalid.
      */
     fun parseDTCs(response: String): List<String>? {
+
+        Log.d("parseDTCs", response)
+        Log.d("parseDTCs", response.length.toString())
+
         var cleaned = response.trim().uppercase()
         cleaned = cleaned.replace(">", "")
         cleaned = cleaned.replace(" ", "")
@@ -123,6 +127,8 @@ object OBD2Parser {
             while (i + 3 < data.length && codes.size < 3) {
                 codes.add(data.substring(i, i + 4))
                 i += 4
+
+                DTCParser.parse(data.substring(i, i + 4))
             }
 
             codes
