@@ -1,5 +1,6 @@
 package edu.galileo.innovacion.obdconnect.network
 
+import android.util.Log
 import edu.galileo.innovacion.obdconnect.data.InitCommand
 import edu.galileo.innovacion.obdconnect.data.OBD2Parser
 import edu.galileo.innovacion.obdconnect.data.PIDCommand
@@ -27,11 +28,7 @@ class OBD2Connection {
     suspend fun connect(host: String, port: Int): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             log("Connecting to $host:$port...")
-
-            socket = Socket(host, port).apply {
-                soTimeout = 5000 // 5 second timeout
-            }
-
+            socket = Socket(host, port).apply { soTimeout = 5000 }
             writer = PrintWriter(socket!!.getOutputStream(), true)
             reader = BufferedReader(InputStreamReader(socket!!.getInputStream()))
 
@@ -105,8 +102,13 @@ class OBD2Connection {
 
             val result = response.toString().trim()
 
+            /*
+                TO DO: Do I really need to clean up the output?
+                       Is the prompt and/or command echoed?
+            */
             // Clean up the output: remove the prompt and any echoed command if present
-            val cleanedResult = result.replace(">", "").replace(command, "").trim()
+            //val cleanedResult = result.replace(">", "").replace(command, "").trim()
+            val cleanedResult = result.replace(">", "").trim()
 
             onMessageReceived?.invoke(command, cleanedResult)
             return@withContext cleanedResult
@@ -128,6 +130,7 @@ class OBD2Connection {
                 PIDCommand.RPM -> OBD2Parser.parseRPM(response)
                 PIDCommand.SPEED -> OBD2Parser.parseSpeed(response)
                 PIDCommand.COOLANT -> OBD2Parser.parseCoolant(response)
+                else -> null
             }
 
             if (value != null) {
@@ -137,7 +140,26 @@ class OBD2Connection {
                 delay(100)
             }
         }
+        null
+    }
 
+    /**
+     * Read Diagnostic Trouble Codes with retry logic.
+     * Returns list of raw code strings (e.g. ["0101", "0113"]),
+     * empty list if no codes, null if failed after retries.
+     */
+    suspend fun readDTCs(maxRetries: Int = 1): List<String>? = withContext(Dispatchers.IO) {
+        repeat(maxRetries) { attempt ->
+            val response = sendCommand(PIDCommand.READ_DTC.code)
+
+            val codes = OBD2Parser.parseDTCs(response)
+            if (codes != null) {
+                return@withContext codes
+            } else {
+                log("Retry ${attempt + 1}/$maxRetries for DTC read: Invalid response")
+                delay(100)
+            }
+        }
         null
     }
 

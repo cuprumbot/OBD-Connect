@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class ConnectionViewModel : ViewModel() {
-    //private val _ipAddress = MutableStateFlow("192.168.0.10")
+    // private val _ipAddress = MutableStateFlow("192.168.0.10")
     private val _ipAddress = MutableStateFlow("10.0.2.2")
     val ipAddress: StateFlow<String> = _ipAddress.asStateFlow()
 
@@ -42,58 +42,45 @@ class ConnectionViewModel : ViewModel() {
     private val _coolantValue = MutableStateFlow(0f)
     val coolantValue: StateFlow<Float> = _coolantValue.asStateFlow()
 
+    private val _dtcCodes = MutableStateFlow<List<String>>(emptyList())
+    val dtcCodes: StateFlow<List<String>> = _dtcCodes.asStateFlow()
+
+    private val _isReadingDTCs = MutableStateFlow(false)
+    val isReadingDTCs: StateFlow<Boolean> = _isReadingDTCs.asStateFlow()
+
+    private val _dtcError = MutableStateFlow<String?>(null)
+    val dtcError: StateFlow<String?> = _dtcError.asStateFlow()
+
     private val obd2Connection = OBD2Connection()
     private var readingJob: Job? = null
     private var shouldReadData = false
 
-    // Callback for terminal logging
     var onTerminalLog: ((TerminalMessage) -> Unit)? = null
 
     init {
-        // Setup logging callback
         obd2Connection.onLog = { message ->
-            onTerminalLog?.invoke(
-                TerminalMessage(
-                    text = message,
-                    type = MessageType.SYSTEM
-                )
-            )
+            onTerminalLog?.invoke(TerminalMessage(text = message, type = MessageType.SYSTEM))
         }
-
         obd2Connection.onMessageReceived = { command, response ->
             onTerminalLog?.invoke(
-                TerminalMessage(
-                    text = "$command -> $response",
-                    type = MessageType.RECEIVED
-                )
+                TerminalMessage(text = "$command -> $response", type = MessageType.RECEIVED)
             )
         }
     }
 
-    fun updateIpAddress(newIp: String) {
-        _ipAddress.value = newIp
-    }
-
-    fun updatePort(newPort: String) {
-        _port.value = newPort
-    }
-
-    fun updateDelay(newDelay: String) {
-        _delay.value = newDelay
-    }
+    fun updateIpAddress(newIp: String) { _ipAddress.value = newIp }
+    fun updatePort(newPort: String) { _port.value = newPort }
+    fun updateDelay(newDelay: String) { _delay.value = newDelay }
 
     fun connect() {
         viewModelScope.launch {
             _isConnecting.value = true
             _connectionError.value = null
-
             val result = obd2Connection.connect(
                 host = _ipAddress.value,
                 port = _port.value.toIntOrNull() ?: 35000
             )
-
             _isConnecting.value = false
-
             if (result.isSuccess) {
                 _isConnected.value = true
                 logTerminal("Connection established successfully", MessageType.SYSTEM)
@@ -113,46 +100,33 @@ class ConnectionViewModel : ViewModel() {
             _rpmValue.value = 0f
             _speedValue.value = 0f
             _coolantValue.value = 0f
+            _dtcCodes.value = emptyList()
             logTerminal("Disconnected from OBD2 adapter", MessageType.SYSTEM)
         }
     }
 
     fun startReadingData() {
         if (readingJob?.isActive == true) return
-
         shouldReadData = true
         readingJob = viewModelScope.launch {
             logTerminal("Starting continuous data reading...", MessageType.SYSTEM)
-
             while (shouldReadData && _isConnected.value) {
                 try {
-                    // Read RPM
                     val rpm = obd2Connection.readPID(PIDCommand.RPM)
-                    if (rpm != null) {
-                        _rpmValue.value = rpm
-                    }
+                    if (rpm != null) _rpmValue.value = rpm
 
-                    // Read Speed
                     val speed = obd2Connection.readPID(PIDCommand.SPEED)
-                    if (speed != null) {
-                        _speedValue.value = speed
-                    }
+                    if (speed != null) _speedValue.value = speed
 
-                    // Read Coolant
                     val coolant = obd2Connection.readPID(PIDCommand.COOLANT)
-                    if (coolant != null) {
-                        _coolantValue.value = coolant
-                    }
+                    if (coolant != null) _coolantValue.value = coolant
 
-                    // Wait for configured delay
                     delay(_delay.value.toLongOrNull() ?: 500L)
-
                 } catch (e: Exception) {
                     logTerminal("Error reading data: ${e.message}", MessageType.SYSTEM)
-                    delay(1000) // Wait before retry
+                    delay(1000)
                 }
             }
-
             logTerminal("Stopped data reading", MessageType.SYSTEM)
         }
     }
@@ -163,24 +137,43 @@ class ConnectionViewModel : ViewModel() {
         readingJob = null
     }
 
+    fun readDTCs() {
+        viewModelScope.launch {
+            _isReadingDTCs.value = true
+            _dtcError.value = null
+            logTerminal("Reading Diagnostic Trouble Codes...", MessageType.SYSTEM)
+
+            val codes = obd2Connection.readDTCs()
+            when {
+                codes == null -> {
+                    _dtcError.value = "Failed to read error codes"
+                    logTerminal("Failed to read DTC codes", MessageType.SYSTEM)
+                }
+                codes.isEmpty() -> {
+                    _dtcCodes.value = emptyList()
+                    logTerminal("No trouble codes found", MessageType.SYSTEM)
+                }
+                else -> {
+                    _dtcCodes.value = codes
+                    logTerminal("Found ${codes.size} trouble code(s): ${codes.joinToString()}", MessageType.SYSTEM)
+                }
+            }
+
+            _isReadingDTCs.value = false
+        }
+    }
+
     suspend fun sendCustomCommand(command: String): String {
         logTerminal(command, MessageType.SENT)
         return obd2Connection.sendCommand(command)
     }
 
     private fun logTerminal(message: String, type: MessageType) {
-        onTerminalLog?.invoke(
-            TerminalMessage(
-                text = message,
-                type = type
-            )
-        )
+        onTerminalLog?.invoke(TerminalMessage(text = message, type = type))
     }
 
     override fun onCleared() {
         super.onCleared()
-        viewModelScope.launch {
-            disconnect()
-        }
+        viewModelScope.launch { disconnect() }
     }
 }

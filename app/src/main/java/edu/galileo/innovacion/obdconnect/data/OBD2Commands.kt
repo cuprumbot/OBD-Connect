@@ -12,5 +12,8 @@ enum class InitCommand(val code: String) {
 enum class PIDCommand(val code: String, val description: String) {
     RPM("010C", "Engine RPM"),
     SPEED("010D", "Vehicle Speed"),
-    COOLANT("0105", "Engine Coolant Temperature")
+    COOLANT("0105", "Engine Coolant Temperature"),
+
+    READ_DTC("99", "Read Trouble Codes"),
+    CLEAR_DTC("04", "Clear Trouble Codes ")
 }

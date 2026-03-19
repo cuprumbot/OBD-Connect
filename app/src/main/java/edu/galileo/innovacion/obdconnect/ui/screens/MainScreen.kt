@@ -14,8 +14,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.galileo.innovacion.obdconnect.ui.viewmodels.ConnectionViewModel
 
 @Composable
-fun MainScreen(innerPadding: PaddingValues) {
-    val connectionViewModel: ConnectionViewModel = viewModel()
+fun MainScreen(
+    innerPadding: PaddingValues,
+    connectionViewModel: ConnectionViewModel = viewModel()
+) {
     val isConnected by connectionViewModel.isConnected.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -30,10 +32,12 @@ fun MainScreen(innerPadding: PaddingValues) {
     // Manage data reading based on selected tab
     LaunchedEffect(selectedTabIndex, isConnected) {
         when (selectedTabIndex) {
-            1, 3 -> { // Car Status or Terminal tab
-                if (isConnected) {
-                    connectionViewModel.startReadingData()
-                }
+            1, 3 -> { // Car Status or Terminal: start live PID reading
+                if (isConnected) connectionViewModel.startReadingData()
+            }
+            2 -> { // Error Codes: stop PID reading, then fetch DTCs
+                connectionViewModel.stopReadingData()
+                if (isConnected) connectionViewModel.readDTCs()
             }
             else -> {
                 connectionViewModel.stopReadingData()
@@ -46,10 +50,8 @@ fun MainScreen(innerPadding: PaddingValues) {
             .fillMaxSize()
             .padding(innerPadding)
     ) {
-        // Status Bar
         ConnectionStatusBar(isConnected = isConnected)
 
-        // Tab Row
         TabRow(selectedTabIndex = selectedTabIndex) {
             tabs.forEachIndexed { index, tab ->
                 Tab(
@@ -61,18 +63,11 @@ fun MainScreen(innerPadding: PaddingValues) {
             }
         }
 
-        // Tab Content
         when (selectedTabIndex) {
-            0 -> ConnectionTabContent(
-                viewModel = connectionViewModel
-            )
-            1 -> CarStatusTabContent(
-                viewModel = connectionViewModel
-            )
-            2 -> ErrorCodesTabContent()
-            3 -> TerminalTabContent(
-                viewModel = connectionViewModel
-            )
+            0 -> ConnectionTabContent(viewModel = connectionViewModel)
+            1 -> CarStatusTabContent(viewModel = connectionViewModel)
+            2 -> ErrorCodesTabContent(viewModel = connectionViewModel)
+            3 -> TerminalTabContent(viewModel = connectionViewModel)
         }
     }
 }
@@ -81,16 +76,12 @@ fun MainScreen(innerPadding: PaddingValues) {
 private fun ConnectionStatusBar(isConnected: Boolean) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = if (isConnected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.errorContainer
-        },
+        color = if (isConnected) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.errorContainer,
         tonalElevation = 2.dp
     ) {
         Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -98,27 +89,18 @@ private fun ConnectionStatusBar(isConnected: Boolean) {
                 imageVector = if (isConnected) Icons.Default.CheckCircle else Icons.Default.Close,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = if (isConnected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onErrorContainer
-                }
+                tint = if (isConnected) MaterialTheme.colorScheme.onPrimaryContainer
+                       else MaterialTheme.colorScheme.onErrorContainer
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = if (isConnected) "Connected to OBD2 Sensor" else "Not Connected",
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isConnected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onErrorContainer
-                }
+                color = if (isConnected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onErrorContainer
             )
         }
     }
 }
 
-private data class TabItem(
-    val title: String,
-    val icon: ImageVector
-)
+private data class TabItem(val title: String, val icon: ImageVector)

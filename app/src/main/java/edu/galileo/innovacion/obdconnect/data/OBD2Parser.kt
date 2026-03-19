@@ -1,5 +1,7 @@
 package edu.galileo.innovacion.obdconnect.data
 
+import android.util.Log
+
 object OBD2Parser {
 
     /**
@@ -17,14 +19,11 @@ object OBD2Parser {
             return null
         }
 
-        // Response format: 41 [PID] [DATA]
-        // We're looking for "41" + last 2 chars of pidCode (e.g., "0C" from "010C")
         val pidSuffix = pidCode.takeLast(2)
 
         if (cleaned.startsWith("41") && cleaned.length >= 4) {
             val responsePid = cleaned.substring(2, 4)
             if (responsePid == pidSuffix) {
-                // Parse bytes: mode (41) + PID + data bytes
                 val bytes = mutableListOf<String>()
                 var i = 0
                 while (i < cleaned.length - 1) {
@@ -80,6 +79,53 @@ object OBD2Parser {
             if (parts.size >= 3) {
                 (parts[2].toInt(16) - 40).toFloat()
             } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Parse DTC response from mode 03 command.
+     *
+     * Formats:
+     *   43 00              → no error codes
+     *   43 xx xx           → one error code
+     *   43 xx xx yy yy     → two error codes
+     *   43 xx xx yy yy zz zz → three error codes (max supported)
+     *
+     * Each code is two bytes represented as a raw 4-char hex string e.g. "0101", "0113".
+     * Returns empty list if no codes, null if the response is invalid.
+     */
+    fun parseDTCs(response: String): List<String>? {
+        var cleaned = response.trim().uppercase()
+        cleaned = cleaned.replace(">", "")
+        cleaned = cleaned.replace(" ", "")
+        cleaned = cleaned.replace("\r", "")
+        cleaned = cleaned.replace("\n", "")
+
+        if ("SEARCHING" in cleaned || "NODATA" in cleaned || cleaned.isEmpty()) {
+            return null
+        }
+
+        // Must start with 43 (mode 03 response)
+        if (!cleaned.startsWith("43")) return null
+
+        return try {
+            // Strip the leading "43" mode byte
+            val data = cleaned.substring(2)
+
+            // "00" means no codes
+            if (data == "00") return emptyList()
+
+            // Each code is 4 hex chars (2 bytes); read up to 3 codes
+            val codes = mutableListOf<String>()
+            var i = 0
+            while (i + 3 < data.length && codes.size < 3) {
+                codes.add(data.substring(i, i + 4))
+                i += 4
+            }
+
+            codes
         } catch (e: Exception) {
             null
         }
