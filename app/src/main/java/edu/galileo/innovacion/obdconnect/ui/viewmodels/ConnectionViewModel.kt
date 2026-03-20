@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import edu.galileo.innovacion.obdconnect.data.MessageType
 import edu.galileo.innovacion.obdconnect.data.PIDCommand
+import edu.galileo.innovacion.obdconnect.data.ParsedDTC
 import edu.galileo.innovacion.obdconnect.data.TerminalMessage
 import edu.galileo.innovacion.obdconnect.network.OBD2Connection
 import kotlinx.coroutines.Job
@@ -42,8 +43,8 @@ class ConnectionViewModel : ViewModel() {
     private val _coolantValue = MutableStateFlow(0f)
     val coolantValue: StateFlow<Float> = _coolantValue.asStateFlow()
 
-    private val _dtcCodes = MutableStateFlow<List<String>>(emptyList())
-    val dtcCodes: StateFlow<List<String>> = _dtcCodes.asStateFlow()
+    private val _dtcCodes = MutableStateFlow<List<ParsedDTC>>(emptyList())
+    val dtcCodes: StateFlow<List<ParsedDTC>> = _dtcCodes.asStateFlow()
 
     private val _isReadingDTCs = MutableStateFlow(false)
     val isReadingDTCs: StateFlow<Boolean> = _isReadingDTCs.asStateFlow()

@@ -4,6 +4,7 @@ import android.util.Log
 import edu.galileo.innovacion.obdconnect.data.InitCommand
 import edu.galileo.innovacion.obdconnect.data.OBD2Parser
 import edu.galileo.innovacion.obdconnect.data.PIDCommand
+import edu.galileo.innovacion.obdconnect.data.ParsedDTC
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -148,13 +149,13 @@ class OBD2Connection {
      * Returns list of raw code strings (e.g. ["0101", "0113"]),
      * empty list if no codes, null if failed after retries.
      */
-    suspend fun readDTCs(maxRetries: Int = 1): List<String>? = withContext(Dispatchers.IO) {
+    suspend fun readDTCs(maxRetries: Int = 1): List<ParsedDTC>? = withContext(Dispatchers.IO) {
         repeat(maxRetries) { attempt ->
             val response = sendCommand(PIDCommand.READ_DTC.code)
 
-            val codes = OBD2Parser.parseDTCs(response)
-            if (codes != null) {
-                return@withContext codes
+            val parsedCodes = OBD2Parser.parseDTCs(response)
+            if (parsedCodes != null) {
+                return@withContext parsedCodes
             } else {
                 log("Retry ${attempt + 1}/$maxRetries for DTC read: Invalid response")
                 delay(100)

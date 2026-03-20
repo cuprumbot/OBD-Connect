@@ -96,7 +96,7 @@ object OBD2Parser {
      * Each code is two bytes represented as a raw 4-char hex string e.g. "0101", "0113".
      * Returns empty list if no codes, null if the response is invalid.
      */
-    fun parseDTCs(response: String): List<String>? {
+    fun parseDTCs(response: String): List<ParsedDTC>? {
 
         Log.d("parseDTCs", response)
         Log.d("parseDTCs", response.length.toString())
@@ -123,15 +123,16 @@ object OBD2Parser {
 
             // Each code is 4 hex chars (2 bytes); read up to 3 codes
             val codes = mutableListOf<String>()
+            val parsedCodes = mutableListOf<ParsedDTC>()
             var i = 0
             while (i + 3 < data.length && codes.size < 3) {
                 codes.add(data.substring(i, i + 4))
-                i += 4
+                parsedCodes.add(DTCParser.parse(data.substring(i, i + 4)))
 
-                DTCParser.parse(data.substring(i, i + 4))
+                i += 4
             }
 
-            codes
+            parsedCodes
         } catch (e: Exception) {
             null
         }

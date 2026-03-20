@@ -67,22 +67,22 @@ object DTCParser {
         // 4. Determine the description based on the System + Digit combination
         val description = when (systemLetter) {
             "P" -> when (digit) {
-                0 -> "Generic (Standard)"
-                1 -> "Manufacturer Specific"
-                2 -> "Generic (Standard)"
-                3 -> "Split (P30x-P33x: Manuf / P34x-P39x: Generic)"
+                0 -> "Standard code"
+                1 -> "Manufacturer specific code"
+                2 -> "Standard code"
+                3 -> "P30x-P33x: Manufacturer specific / P34x-P39x: Standard"
                 else -> "Error: non existent code"
             }
             "U" -> when (digit) {
-                0 -> "Generic (Standard)"
-                1 -> "Manufacturer Specific"
-                2 -> "Manufacturer Specific"
-                3 -> "Generic (Standard)"
+                0 -> "Standard code"
+                1 -> "Manufacturer specific code"
+                2 -> "Manufacturer specific code"
+                3 -> "Standard code"
                 else -> "Error: non existent code"
             }
             "C", "B" -> when (digit) {
-                0 -> "Generic (Standard)"
-                else -> "Manufacturer Specific"
+                0 -> "Standard code"
+                else -> "Manufacturer specific code"
             }
             else -> "Error: non existent code"
         }

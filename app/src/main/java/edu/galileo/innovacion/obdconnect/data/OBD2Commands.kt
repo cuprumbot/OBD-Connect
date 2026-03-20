@@ -14,6 +14,6 @@ enum class PIDCommand(val code: String, val description: String) {
     SPEED("010D", "Vehicle Speed"),
     COOLANT("0105", "Engine Coolant Temperature"),
 
-    READ_DTC("99", "Read Trouble Codes"),
+    READ_DTC("03", "Read Trouble Codes"),
     CLEAR_DTC("04", "Clear Trouble Codes ")
 }
