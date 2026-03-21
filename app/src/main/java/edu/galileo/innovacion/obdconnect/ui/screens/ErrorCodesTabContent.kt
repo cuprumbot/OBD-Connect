@@ -1,4 +1,3 @@
-
 package edu.galileo.innovacion.obdconnect.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -37,6 +36,23 @@ fun ErrorCodesTabContent(
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(vertical = 16.dp)
         )
+
+        if (isConnected) {
+            OutlinedButton(
+                onClick = { viewModel.clearDTCs() },
+                enabled = !isReadingDTCs,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Clear Codes")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         when {
             !isConnected -> {
@@ -169,14 +185,16 @@ private fun DTCCodeItem(code: ParsedDTC) {
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = code.description.ifEmpty { "No description available" },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            if (code.subSystemIdentifier.isNotEmpty()) {
+                Text(
+                    text = code.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Text(
                 text = code.systemDesignator,
                 style = MaterialTheme.typography.bodySmall,

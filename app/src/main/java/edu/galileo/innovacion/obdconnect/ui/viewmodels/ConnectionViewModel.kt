@@ -164,6 +164,14 @@ class ConnectionViewModel : ViewModel() {
         }
     }
 
+    fun clearDTCs() {
+        viewModelScope.launch {
+            logTerminal("Clearing Diagnostic Trouble Codes...", MessageType.SYSTEM)
+            obd2Connection.clearDTCs()
+            logTerminal("CLEAR_DTC command sent", MessageType.SYSTEM)
+        }
+    }
+
     suspend fun sendCustomCommand(command: String): String {
         logTerminal(command, MessageType.SENT)
         return obd2Connection.sendCommand(command)

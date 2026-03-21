@@ -23,8 +23,11 @@ object DTCParser {
         val codeSelection = codeSelection(code)
         val subSystemIdentifier = subSystemIdentifier(code)
         val faultIdentifier = faultIdentifier(code)
-        val description = description(code)
+
+        // Call second to last
         val troubleCode = troubleCode(code)
+        // Call last
+        val description = description(code)
 
         return ParsedDTC(
             systemDesignator = systemDesignator.description,
@@ -135,8 +138,15 @@ object DTCParser {
     }
 
     fun description(code: String): String {
-        // To be implemented
-        return ""
+        val key = troubleCode(code)
+        val json = javaClass.classLoader
+            ?.getResourceAsStream("assets/dtc_mapping.json")
+            ?.bufferedReader()
+            ?.readText()
+            ?: return ""
+
+        val jsonObject = org.json.JSONObject(json)
+        return if (jsonObject.has(key)) jsonObject.getString(key) else ""
     }
 
     fun troubleCode(code: String): String {

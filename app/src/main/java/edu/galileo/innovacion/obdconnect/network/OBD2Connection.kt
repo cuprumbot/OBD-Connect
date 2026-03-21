@@ -165,6 +165,16 @@ class OBD2Connection {
     }
 
     /**
+     * Send the CLEAR_DTC command and log the response. Does not parse the result.
+     */
+    suspend fun clearDTCs() = withContext(Dispatchers.IO) {
+        log("Sending CLEAR_DTC command...")
+        val response = sendCommand(PIDCommand.CLEAR_DTC.code)
+        Log.d("OBD2Connection", "CLEAR_DTC response: $response")
+        log("CLEAR_DTC response: $response")
+    }
+
+    /**
      * Disconnect from adapter
      */
     suspend fun disconnect() = withContext(Dispatchers.IO) {

@@ -62,6 +62,28 @@ fun ConnectionTabContent(
             modifier = Modifier.fillMaxWidth()
         )
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Quick fill:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(
+                onClick = { viewModel.updateIpAddress("10.0.2.2") },
+                enabled = !isConnected && !isConnecting
+            ) {
+                Text("Emulator")
+            }
+            TextButton(
+                onClick = { viewModel.updateIpAddress("192.168.0.10") },
+                enabled = !isConnected && !isConnecting
+            ) {
+                Text("Wifi")
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Port field
